@@ -33,6 +33,7 @@ Test projects read it from `../shop-sut/.generated/sut.env` and must not hard-co
 | `SUT_INTERNAL_BACKEND_URL` | Backend from a container on that network | `http://medusa:9000` |
 | `SUT_INTERNAL_DB_READONLY_URL` | Postgres read-only from that network | `postgres://qa_readonly:…@postgres:5432/medusa` |
 | `SUT_INTERNAL_REDIS_URL` | Redis from that network | `redis://redis:6379` |
+| `SUT_JWT_SECRET` | Test-only JWT signing secret of the stand, for tests that need expired or tampered tokens | `qa-local-jwt-secret-not-for-production` |
 
 ## Shared data you can rely on
 

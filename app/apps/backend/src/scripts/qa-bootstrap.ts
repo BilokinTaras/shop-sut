@@ -405,6 +405,9 @@ export default async function qaBootstrap({ container }: ExecArgs) {
     SUT_INTERNAL_BACKEND_URL: 'http://medusa:9000',
     SUT_INTERNAL_DB_READONLY_URL: `postgres://qa_readonly:${roPassword}@postgres:5432/${dbName}`,
     SUT_INTERNAL_REDIS_URL: 'redis://redis:6379',
+    // Test-only signing secret of this local stand (from .env.example). Lets negative tests build
+    // expired or tampered tokens that are otherwise valid; never a real secret.
+    SUT_JWT_SECRET: process.env.JWT_SECRET ?? '',
   }
 
   await mkdir(generatedDir, { recursive: true })
