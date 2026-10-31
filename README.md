@@ -111,6 +111,9 @@ build and start the stand, run smoke, upload logs on failure; multi-arch images 
 ## How-to
 
 - **Change a port:** edit `.env` (`SHOP_BACKEND_PORT`, …), then `make up`. Backend and storefront follow automatically.
+- **Run several Medusa server processes:** `SHOP_MEDUSA_CLUSTER=4 make up` starts `medusa start --cluster 4`
+  (Node.js cluster); `make up` without the variable returns to one process. Used by the performance experiment
+  in `shop-performance-k6`.
 - **See why a service is unhealthy:** `make status`, then `docker compose logs <service> --tail=100`.
 - **Query the database as tests do:** `docker compose exec postgres psql "postgres://qa_readonly:qa-local-readonly-password@localhost:5432/medusa"`.
 - **Upgrade Medusa:** follow [docs/upstream-patches.md](docs/upstream-patches.md).

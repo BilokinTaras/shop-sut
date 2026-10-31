@@ -62,7 +62,11 @@ services:
       context: .
       dockerfile: docker/backend.Dockerfile
     pull_policy: build
-    command: ["medusa", "start"]
+    environment:
+      <<: *backend-env
+      # Performance experiment knob (shop-performance-k6): number of Node.js processes. Empty = one process.
+      SHOP_MEDUSA_CLUSTER: ${SHOP_MEDUSA_CLUSTER:-}
+    command: ["sh", "-c", "exec medusa start $${SHOP_MEDUSA_CLUSTER:+--cluster $$SHOP_MEDUSA_CLUSTER}"]
     depends_on:
       migrate: { condition: service_completed_successfully }
     ports:
