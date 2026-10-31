@@ -109,6 +109,8 @@ services:
       QA_BACKEND_URL: http://localhost:${SHOP_BACKEND_PORT:-9000}
       QA_STOREFRONT_URL: http://localhost:${SHOP_STOREFRONT_PORT:-8000}
       QA_STOREFRONT_COUNTRY: ${QA_STOREFRONT_COUNTRY:-dk}
+      # Plain-HTTP stand: cart/auth cookies without Secure so WebKit keeps them (ADR-002).
+      STOREFRONT_INSECURE_COOKIES: "true"
     volumes:
       - generated:/generated:ro
     depends_on:

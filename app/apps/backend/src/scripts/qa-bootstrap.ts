@@ -5,7 +5,7 @@
  * migration script) and adds everything the test projects rely on:
  *
  *   1. QA region in USD ("QA North America": us, ca) with a shipping option
- *   2. QA products with stable handles: qa-tee, qa-mug, qa-sold-out
+ *   2. QA products with stable handles: qa-tee, qa-mug, qa-sold-out, in collection "QA Picks"
  *   3. a test admin user
  *   4. the publishable API key of the default sales channel (looked up)
  *   5. the read-only database role `qa_readonly`
@@ -25,18 +25,22 @@ import {
   ProductStatus,
 } from '@medusajs/framework/utils'
 import {
+  createCollectionsWorkflow,
   createInventoryLevelsWorkflow,
   createProductsWorkflow,
   createRegionsWorkflow,
   createShippingOptionsWorkflow,
   createTaxRegionsWorkflow,
   createUserAccountWorkflow,
+  updateProductsWorkflow,
 } from '@medusajs/medusa/core-flows'
 
 const QA_REGION_NAME = 'QA North America'
 const QA_REGION_COUNTRIES = ['us', 'ca']
 const QA_SHIPPING_OPTION = 'QA Standard Shipping (US/CA)'
 const QA_IN_STOCK = 1_000_000
+// The storefront home page lists products by collection; the starter seed has none.
+const QA_COLLECTION = { title: 'QA Picks', handle: 'qa-picks' }
 
 function required(name: string): string {
   const value = process.env[name]
@@ -252,6 +256,31 @@ export default async function qaBootstrap({ container }: ExecArgs) {
       },
     })
     logger.info(`qa-bootstrap: created products ${created.map((p) => p.handle).join(', ')}`)
+  }
+
+  // Collection shown on the storefront home page.
+  const { data: collections } = await query.graph({
+    entity: 'product_collection',
+    fields: ['id'],
+    filters: { handle: QA_COLLECTION.handle },
+  })
+  let collectionId = collections[0]?.id as string | undefined
+  if (!collectionId) {
+    const { result } = await createCollectionsWorkflow(container).run({
+      input: { collections: [QA_COLLECTION] },
+    })
+    collectionId = result[0].id
+  }
+  const { data: qaWithCollection } = await query.graph({
+    entity: 'product',
+    fields: ['id', 'collection_id'],
+    filters: { handle: QA_PRODUCTS.map((p) => p.handle) },
+  })
+  const outsideCollection = qaWithCollection.filter((p) => p.collection_id !== collectionId).map((p) => p.id)
+  if (outsideCollection.length) {
+    await updateProductsWorkflow(container).run({
+      input: { selector: { id: outsideCollection }, update: { collection_id: collectionId } },
+    })
   }
 
   // Inventory levels: every QA variant gets a level at the starter warehouse.

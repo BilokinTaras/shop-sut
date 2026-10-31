@@ -56,6 +56,7 @@ Test projects read it from `../shop-sut/.generated/sut.env` and must not hard-co
 | `qa-mug` | one (`QA-MUG`) | 12.50 / 14.00 | 1,000,000 | Single-variant flows, quantity changes |
 | `qa-sold-out` | one (`QA-SOLD-OUT`) | 40.00 / 45.00 | 0 | Out-of-stock behaviour |
 
+- All three are in collection **"QA Picks"** (`qa-picks`), which the storefront home page lists.
 - Images are served by the storefront from `/qa/<handle>.png` — no internet access is needed and pages
   render identically everywhere.
 - Region **"QA North America"** (USD; us, ca; tax provider `tp_system`, no rate) with shipping option

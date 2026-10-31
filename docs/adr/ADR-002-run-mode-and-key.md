@@ -23,7 +23,10 @@ Two further problems are specific to the Next.js storefront:
    event bus, workflow engine and locking modules are enabled as in Medusa's deployment guide.
    Because the stand is served over plain HTTP on localhost, the session cookie is configured with
    `secure: false, sameSite: "lax"` (production would otherwise send `Secure` cookies that WebKit rejects
-   on HTTP). This is documented as a local-only deviation.
+   on HTTP). The storefront's own cookies (cart, customer token, locale) get the same treatment through
+   `STOREFRONT_INSECURE_COOKIES=true`, set only in `compose.yaml`: Chromium and Firefox accept `Secure`
+   cookies on `http://localhost`, WebKit does not, and the cart silently stops working there.
+   This is documented as a local-only deviation.
 2. **Startup order as Compose dependencies.** `postgres`/`redis` (healthy) → `migrate` (one-shot,
    `medusa db:migrate`, which also applies the starter seed once) → `medusa` (healthy) → `bootstrap`
    (one-shot, idempotent QA data, writes the contract) → `storefront`.

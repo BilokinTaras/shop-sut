@@ -9,6 +9,8 @@ so an upgrade is a diff of these files.
 |---|---|---|
 | `apps/backend/medusa-config.ts` | Redis caching, event bus, workflow engine and locking modules; `redisUrl`; `workerMode`; Postgres SSL off; session cookie `secure: false, sameSite: "lax"` | Production-like run mode (ADR-002); local HTTP stand |
 | `apps/backend/src/scripts/qa-bootstrap.ts` | New file | Idempotent QA data, admin, key lookup, read-only role, contract file |
+| `apps/storefront/src/app/sitemap.ts` | `export const dynamic = "force-dynamic"` | Prerendering the sitemap at build time needs a running backend |
+| `apps/storefront/src/lib/data/cookies.ts`, `locale-actions.ts` | `secure` also requires `STOREFRONT_INSECURE_COOKIES !== "true"` (set to `true` only in `compose.yaml`) | WebKit drops `Secure` cookies on plain-HTTP localhost, so carts and logins break there |
 | `apps/storefront/public/qa/*.png` | New files (generated images) | Local images for QA products, deterministic visual tests |
 | removed `.github/`, `AGENTS.md`, `CLAUDE.md`, `apps/storefront/tsconfig.tsbuildinfo` | Upstream CI and editor-agent files, build cache | Not used here; avoid confusing tooling |
 

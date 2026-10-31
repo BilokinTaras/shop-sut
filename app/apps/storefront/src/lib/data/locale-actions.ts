@@ -28,7 +28,8 @@ export const setLocaleCookie = async (locale: string) => {
     maxAge: 60 * 60 * 24 * 365, // 1 year
     httpOnly: false, // Allow client-side access
     sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
+    // shop-sut patch: the local stand is plain HTTP; WebKit drops Secure cookies there (ADR-002).
+    secure: process.env.NODE_ENV === "production" && process.env.STOREFRONT_INSECURE_COOKIES !== "true",
   })
 }
 

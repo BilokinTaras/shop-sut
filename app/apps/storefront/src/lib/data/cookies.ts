@@ -61,7 +61,8 @@ export const setAuthToken = async (token: string) => {
     maxAge: 60 * 60 * 24 * 7,
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    // shop-sut patch: the local stand is plain HTTP; WebKit drops Secure cookies there (ADR-002).
+    secure: process.env.NODE_ENV === "production" && process.env.STOREFRONT_INSECURE_COOKIES !== "true",
   })
 }
 
@@ -89,7 +90,8 @@ export const setPendingCustomer = async (customer: PendingCustomer) => {
     maxAge: 60 * 60 * 24,
     httpOnly: true,
     sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
+    // shop-sut patch: the local stand is plain HTTP; WebKit drops Secure cookies there (ADR-002).
+    secure: process.env.NODE_ENV === "production" && process.env.STOREFRONT_INSECURE_COOKIES !== "true",
   })
 }
 
@@ -128,7 +130,8 @@ export const setCartId = async (cartId: string) => {
     maxAge: 60 * 60 * 24 * 7,
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    // shop-sut patch: the local stand is plain HTTP; WebKit drops Secure cookies there (ADR-002).
+    secure: process.env.NODE_ENV === "production" && process.env.STOREFRONT_INSECURE_COOKIES !== "true",
   })
 }
 
