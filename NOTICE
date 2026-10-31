@@ -1,0 +1,14 @@
+shop-sut
+Copyright (c) 2026 Taras Bilokin
+
+This repository contains a vendored copy of the Medusa DTC starter:
+
+  Project: medusajs/dtc-starter (https://github.com/medusajs/dtc-starter)
+  Commit:  d4e4dae (2026-10-30), @medusajs/* 2.22.2
+  Path:    app/
+  Licence: MIT, Copyright (c) 2022 Medusa — see LICENSE-medusa-dtc-starter
+
+Local modifications to app/ are listed in docs/upstream-patches.md.
+
+Container images used at runtime (pulled, not redistributed):
+  node:22.23.4-bookworm-slim, postgres:17.11-alpine, redis:7.4.12-alpine

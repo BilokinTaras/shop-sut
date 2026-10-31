@@ -1,0 +1,125 @@
+# shop-sut: Medusa v2 backend + admin, Next.js storefront, Postgres, Redis.
+# Everything binds to 127.0.0.1. See docs/architecture.md.
+name: qa-shop-sut
+
+x-backend: &backend
+  image: qa-shop-sut/backend:local
+  # Built once by the `medusa` service; the one-shot services reuse the image.
+  pull_policy: never
+  environment: &backend-env
+    NODE_ENV: production
+    PORT: ${SHOP_BACKEND_PORT:-9000}
+    DATABASE_URL: postgres://postgres:${SHOP_POSTGRES_PASSWORD:?run make up to create .env}@postgres:5432/medusa
+    REDIS_URL: redis://redis:6379
+    JWT_SECRET: ${SHOP_JWT_SECRET:?}
+    COOKIE_SECRET: ${SHOP_COOKIE_SECRET:?}
+    STORE_CORS: http://localhost:${SHOP_STOREFRONT_PORT:-8000},http://127.0.0.1:${SHOP_STOREFRONT_PORT:-8000}
+    ADMIN_CORS: http://localhost:${SHOP_BACKEND_PORT:-9000},http://127.0.0.1:${SHOP_BACKEND_PORT:-9000}
+    AUTH_CORS: http://localhost:${SHOP_BACKEND_PORT:-9000},http://localhost:${SHOP_STOREFRONT_PORT:-8000},http://127.0.0.1:${SHOP_BACKEND_PORT:-9000},http://127.0.0.1:${SHOP_STOREFRONT_PORT:-8000}
+    MEDUSA_DISABLE_TELEMETRY: "true"
+
+services:
+  postgres:
+    image: postgres:17.11-alpine
+    environment:
+      POSTGRES_DB: medusa
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${SHOP_POSTGRES_PASSWORD:?}
+    ports:
+      - "127.0.0.1:${SHOP_POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d medusa"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4.12-alpine
+    ports:
+      - "127.0.0.1:${SHOP_REDIS_PORT:-56379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  # One-shot: schema migrations + the starter seed (a Medusa migration script, runs once).
+  migrate:
+    <<: *backend
+    command: ["medusa", "db:migrate"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    restart: "no"
+
+  medusa:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    pull_policy: build
+    command: ["medusa", "start"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    ports:
+      - "127.0.0.1:${SHOP_BACKEND_PORT:-9000}:${SHOP_BACKEND_PORT:-9000}"
+      # The storefront shares this container's network namespace (see ADR-002),
+      # so its port is published here.
+      - "127.0.0.1:${SHOP_STOREFRONT_PORT:-8000}:${SHOP_STOREFRONT_PORT:-8000}"
+    restart: unless-stopped
+
+  # One-shot: QA data, admin, publishable key, read-only role, contract file.
+  bootstrap:
+    <<: *backend
+    command: ["medusa", "exec", "./src/scripts/qa-bootstrap.js"]
+    environment:
+      <<: *backend-env
+      QA_GENERATED_DIR: /generated
+      QA_ADMIN_EMAIL: ${QA_ADMIN_EMAIL:?}
+      QA_ADMIN_PASSWORD: ${QA_ADMIN_PASSWORD:?}
+      QA_DB_READONLY_PASSWORD: ${QA_DB_READONLY_PASSWORD:?}
+      QA_HOST_BACKEND_URL: http://localhost:${SHOP_BACKEND_PORT:-9000}
+      QA_HOST_STOREFRONT_URL: http://localhost:${SHOP_STOREFRONT_PORT:-8000}
+      QA_HOST_POSTGRES_PORT: ${SHOP_POSTGRES_PORT:-55432}
+      QA_HOST_REDIS_PORT: ${SHOP_REDIS_PORT:-56379}
+      QA_STOREFRONT_COUNTRY: ${QA_STOREFRONT_COUNTRY:-dk}
+      QA_DOCKER_NETWORK: qa-shop-net
+      QA_MEDUSA_VERSION: "2.22.2"
+    volumes:
+      - generated:/generated
+    depends_on:
+      medusa: { condition: service_healthy }
+    restart: "no"
+
+  storefront:
+    image: qa-shop-sut/storefront:local
+    build:
+      context: .
+      dockerfile: docker/storefront.Dockerfile
+    # Shares the backend's network namespace: http://localhost:<backend port>
+    # then means the same thing to the browser on the host and to the Next.js
+    # server inside the container. Works on Docker Desktop (macOS) and Linux.
+    network_mode: "service:medusa"
+    environment:
+      PORT: ${SHOP_STOREFRONT_PORT:-8000}
+      QA_BACKEND_URL: http://localhost:${SHOP_BACKEND_PORT:-9000}
+      QA_STOREFRONT_URL: http://localhost:${SHOP_STOREFRONT_PORT:-8000}
+      QA_STOREFRONT_COUNTRY: ${QA_STOREFRONT_COUNTRY:-dk}
+    volumes:
+      - generated:/generated:ro
+    depends_on:
+      bootstrap: { condition: service_completed_successfully }
+      medusa: { condition: service_healthy }
+    restart: unless-stopped
+
+networks:
+  default:
+    name: qa-shop-net
+
+volumes:
+  pgdata:
+  generated:
