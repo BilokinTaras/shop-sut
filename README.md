@@ -9,10 +9,13 @@ QA data and a generated contract file that test projects read their settings fro
 ## In 30 seconds
 
 - `make up` builds and starts the stand, waits for every healthcheck and writes `.generated/sut.env`.
-- From an empty database to a passing smoke check in **41 s** (`make reset && make smoke`, cached images, 2026-10-31).
-- Bootstrap is idempotent: run twice in a row, it creates nothing new (verified 2026-10-31).
+- From an empty database to a passing smoke check in **41 s** (`make reset && make smoke`, cached images);
+  the current run of `sh scripts/verify.sh` is committed in [docs/verification/](docs/verification/).
+- Bootstrap is idempotent: run twice in a row it creates nothing new — the verification script compares row
+  counts before and after and writes the result to the same file.
 - Production run mode (`medusa start`, `next start`, Redis-backed modules) for stable timings.
-- Used by three test projects: Playwright UI + API, pytest API, and k6 performance tests.
+- Built to be shared by three sibling test projects in the same portfolio (Playwright UI + API, pytest API,
+  k6 performance). They are separate repositories and are linked from the profile once published.
 
 ## Live reports
 
@@ -88,7 +91,9 @@ Ports are bound to `127.0.0.1` only; change them in `.env` if they are taken.
 ## Test strategy
 
 This repository is the environment, not a test suite. Its own quality bar is the smoke check plus two
-properties verified on every change: **reset → smoke passes from scratch**, and **bootstrap is idempotent**.
+properties: **reset → smoke passes from scratch**, and **bootstrap is idempotent**. There is no CI yet, so
+they are checked by running `sh scripts/verify.sh`, which writes its evidence to `docs/verification/<date>.md`;
+the newest file is the one to trust.
 The rule for test projects is "read shared data, create your own through the API" —
 see [docs/test-data-contract.md](docs/test-data-contract.md).
 
@@ -98,7 +103,8 @@ see [docs/test-data-contract.md](docs/test-data-contract.md).
 |---|---|
 | Backend healthy, Store API requires a publishable key | `make smoke` checks 1–3 |
 | Test admin can log in | `make smoke` check 4 |
-| Storefront renders QA products with local images | `make smoke` check 5 |
+| Storefront renders the QA product page | `make smoke` check 5 |
+| Product images are served locally, not from a CDN | `make smoke` check 6 |
 | No duplicate data after repeated bootstrap | `make bootstrap` twice, product/region/user counts unchanged |
 | Read-only DB role cannot write | `UPDATE`/`CREATE` as `qa_readonly` fail with "read-only transaction" |
 
@@ -120,11 +126,15 @@ build and start the stand, run smoke, upload logs on failure; multi-arch images 
 
 ## Results and findings
 
-| Check (2026-10-31, Windows 11 x86_64, Docker Desktop 16 GB / 12 CPUs) | Result |
+Latest verification run, produced by `sh scripts/verify.sh` and committed in full:
+**[docs/verification/2026-11-01.md](docs/verification/2026-11-01.md)** (commit `6330c3b`, Docker 29.7.2).
+
+| Check | Result |
 |---|---|
-| `make reset` + `make smoke`, cached images | 41 s, 5/5 checks passed |
-| `make bootstrap` twice in a row | exit 0 both times (17 s, 16 s), 0 new records |
-| `docker compose build --no-cache` (base images already pulled) | 192 s, exit 0 |
+| Stand up + smoke | 38 s, **6/6 checks passed** |
+| `make bootstrap` a second time | 17 s, row counts unchanged (10 products, 28 variants, 2 regions, 1 collection, 1 admin user) |
+| `qa_readonly` write and DDL | both refused by PostgreSQL |
+| `docker compose build --no-cache`, base images pulled | 192 s, exit 0 (2026-10-31, not re-measured since) |
 
 ## Decisions
 

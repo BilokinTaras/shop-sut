@@ -87,6 +87,8 @@ services:
       QA_ADMIN_PASSWORD: ${QA_ADMIN_PASSWORD:?}
       QA_DB_READONLY_PASSWORD: ${QA_DB_READONLY_PASSWORD:?}
       QA_HOST_BACKEND_URL: http://localhost:${SHOP_BACKEND_PORT:-9000}
+      # The backend listens on the same port inside the network, so the contract must follow it too.
+      QA_INTERNAL_BACKEND_URL: http://medusa:${SHOP_BACKEND_PORT:-9000}
       QA_HOST_STOREFRONT_URL: http://localhost:${SHOP_STOREFRONT_PORT:-8000}
       QA_HOST_POSTGRES_PORT: ${SHOP_POSTGRES_PORT:-55432}
       QA_HOST_REDIS_PORT: ${SHOP_REDIS_PORT:-56379}

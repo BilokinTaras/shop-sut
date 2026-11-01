@@ -383,6 +383,7 @@ export default async function qaBootstrap({ container }: ExecArgs) {
   const hostStorefront = process.env.QA_HOST_STOREFRONT_URL || 'http://localhost:8000'
   const hostDbPort = process.env.QA_HOST_POSTGRES_PORT || '55432'
   const hostRedisPort = process.env.QA_HOST_REDIS_PORT || '56379'
+  const internalBackend = process.env.QA_INTERNAL_BACKEND_URL || 'http://medusa:9000'
   const country = process.env.QA_STOREFRONT_COUNTRY || 'dk'
 
   const contract: Record<string, string> = {
@@ -402,7 +403,7 @@ export default async function qaBootstrap({ container }: ExecArgs) {
     SUT_DB_READONLY_URL: `postgres://qa_readonly:${roPassword}@localhost:${hostDbPort}/${dbName}`,
     SUT_REDIS_URL: `redis://localhost:${hostRedisPort}`,
     SUT_DOCKER_NETWORK: process.env.QA_DOCKER_NETWORK || 'qa-shop-net',
-    SUT_INTERNAL_BACKEND_URL: 'http://medusa:9000',
+    SUT_INTERNAL_BACKEND_URL: internalBackend,
     SUT_INTERNAL_DB_READONLY_URL: `postgres://qa_readonly:${roPassword}@postgres:5432/${dbName}`,
     SUT_INTERNAL_REDIS_URL: 'redis://redis:6379',
     // Test-only signing secret of this local stand (from .env.example). Lets negative tests build

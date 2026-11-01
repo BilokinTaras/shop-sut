@@ -53,11 +53,18 @@ case "$body" in
   *) fail "admin login returns a token" "body: $(printf '%s' "$body" | cut -c1-120)" ;;
 esac
 
-# 5. Storefront renders the QA product page
+# 5. Storefront renders the QA product page, and its local image is actually served
 page=$(curl -sS --max-time 30 "$SUT_STOREFRONT_URL/$SUT_STOREFRONT_COUNTRY/products/qa-tee" || true)
 case "$page" in
   *'QA Tee'*) pass "storefront product page shows QA Tee" ;;
   *) fail "storefront product page shows QA Tee" "title not found in HTML" ;;
+esac
+
+# 6. The product image is local to this stand: no test should depend on an external CDN.
+status=$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' "$SUT_STOREFRONT_URL/qa/qa-tee.png" || true)
+case "$status" in
+  200) pass "storefront serves the local QA product image" ;;
+  *) fail "storefront serves the local QA product image" "GET /qa/qa-tee.png -> $status" ;;
 esac
 
 if [ "$fails" -gt 0 ]; then
