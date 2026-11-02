@@ -20,7 +20,8 @@ RUN --mount=type=cache,id=qa-shop-pnpm,target=/pnpm/store \
 
 FROM deps AS build
 COPY app/apps/backend apps/backend
-RUN cd apps/backend && pnpm exec medusa build
+WORKDIR /server/apps/backend
+RUN pnpm exec medusa build
 
 FROM base AS runtime
 ENV NODE_ENV=production \
@@ -29,5 +30,5 @@ ENV NODE_ENV=production \
 COPY --from=build /server /server
 WORKDIR /server/apps/backend/.medusa/server
 HEALTHCHECK --interval=5s --timeout=3s --start-period=60s --retries=30 \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||9000)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD ["node", "-e", "fetch('http://127.0.0.1:'+(process.env.PORT||9000)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
 CMD ["medusa", "start"]

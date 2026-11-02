@@ -27,7 +27,7 @@ status() { # status <url> [curl args...] -> prints HTTP status code
 
 # 1. Backend health
 code=$(status "$SUT_BACKEND_URL/health")
-[ "$code" = 200 ] && pass "backend /health returns 200" || fail "backend /health returns 200" "got $code"
+if [ "$code" = 200 ]; then pass "backend /health returns 200"; else fail "backend /health returns 200" "got $code"; fi
 
 # 2. Store API lists qa-tee with the publishable key
 body=$(curl -sS --max-time 15 -H "x-publishable-api-key: $SUT_PUBLISHABLE_KEY" \

@@ -24,7 +24,8 @@ ENV NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=pk_qa_build_placeholder_key \
     NEXT_PUBLIC_MEDUSA_BACKEND_URL=http://qa-build-placeholder-backend:9000 \
     NEXT_PUBLIC_BASE_URL=http://qa-build-placeholder-storefront:8000 \
     NEXT_PUBLIC_DEFAULT_REGION=dk
-RUN cd apps/storefront && pnpm exec next build && mv .next .next-template
+WORKDIR /server/apps/storefront
+RUN pnpm exec next build && mv .next .next-template
 
 FROM base AS runtime
 ENV NODE_ENV=production \
@@ -34,5 +35,5 @@ COPY docker/storefront-entrypoint.sh /usr/local/bin/storefront-entrypoint.sh
 RUN chmod 0755 /usr/local/bin/storefront-entrypoint.sh
 WORKDIR /server/apps/storefront
 HEALTHCHECK --interval=5s --timeout=5s --start-period=30s --retries=30 \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8000)+'/'+(process.env.QA_STOREFRONT_COUNTRY||'dk')).then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
+  CMD ["node", "-e", "fetch('http://127.0.0.1:'+(process.env.PORT||8000)+'/'+(process.env.QA_STOREFRONT_COUNTRY||'dk')).then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"]
 ENTRYPOINT ["/usr/local/bin/storefront-entrypoint.sh"]

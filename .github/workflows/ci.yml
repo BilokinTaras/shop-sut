@@ -1,0 +1,75 @@
+name: CI
+
+# Lints everything that is code here (shell, Dockerfiles, workflows), then proves the stand builds from
+# source, starts, passes the smoke checks and keeps its own promises (scripts/verify.sh).
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint shell, Dockerfiles and workflows
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: shellcheck
+        run: |
+          docker run --rm -v "$PWD:/mnt" -w /mnt koalaman/shellcheck:v0.11.0 \
+            scripts/*.sh docker/*.sh
+
+      - name: hadolint
+        run: |
+          for f in docker/*.Dockerfile; do
+            docker run --rm -i hadolint/hadolint:v2.15.1 hadolint --failure-threshold warning - < "$f"
+          done
+
+      - name: actionlint
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
+
+      - name: Compose file is valid
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+
+  stand:
+    name: Build, start, smoke, verify
+    needs: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build and start from scratch
+        run: |
+          make env
+          docker compose build
+          FRESH=1 sh scripts/verify.sh
+
+      - name: Verification report in the summary
+        if: always()
+        run: |
+          # verify.sh already failed the previous step if a promise was broken; this only shows the evidence.
+          file=$(find docs/verification -name '*.md' | sort | tail -1)
+          if [ -n "$file" ]; then cat "$file" >> "$GITHUB_STEP_SUMMARY"; fi
+
+      - name: Logs on failure
+        if: failure()
+        uses: ./.github/actions/collect-sut-logs
+        with:
+          path: .

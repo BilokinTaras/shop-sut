@@ -1,0 +1,123 @@
+name: Start shop-sut
+description: >-
+  Starts the Medusa stand in CI from the published GHCR images, or builds it from source when the images
+  are not available, runs the smoke checks and exports the contract file (SUT_*) as environment variables.
+  Used by every test project in the portfolio.
+
+inputs:
+  ref:
+    description: Git ref of BilokinTaras/shop-sut to run (branch, tag or SHA)
+    required: false
+    default: main
+  image-tag:
+    description: >-
+      Tag of the published images (a version such as v1.0.0, or a commit SHA). Empty, or a tag that cannot be
+      pulled, builds the stand from source instead.
+    required: false
+    default: ""
+  path:
+    description: Directory to check shop-sut out into, relative to the workspace
+    required: false
+    default: shop-sut
+
+outputs:
+  source:
+    description: "`images` when the stand runs from GHCR images, `build` when it was built from source"
+    value: ${{ steps.images.outputs.source }}
+  contract:
+    description: Absolute path of the contract file (sut.env)
+    value: ${{ steps.contract.outputs.file }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check out shop-sut
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        repository: BilokinTaras/shop-sut
+        ref: ${{ inputs.ref }}
+        path: ${{ inputs.path }}
+        persist-credentials: false
+
+    - name: Use published images when available
+      id: images
+      shell: bash
+      env:
+        TAG: ${{ inputs.image-tag }}
+      run: |
+        registry=ghcr.io/bilokintaras
+        if [ -n "$TAG" ] \
+          && docker pull --quiet "$registry/shop-sut-backend:$TAG" \
+          && docker pull --quiet "$registry/shop-sut-storefront:$TAG"; then
+          {
+            echo "SHOP_BACKEND_IMAGE=$registry/shop-sut-backend:$TAG"
+            echo "SHOP_STOREFRONT_IMAGE=$registry/shop-sut-storefront:$TAG"
+            echo "SHOP_PULL_POLICY=missing"
+          } >> "$GITHUB_ENV"
+          echo "source=images" >> "$GITHUB_OUTPUT"
+        else
+          echo "::notice title=shop-sut::images '$TAG' not available, building the stand from source"
+          echo "source=build" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Start the stand
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      env:
+        SOURCE: ${{ steps.images.outputs.source }}
+      run: |
+        make env
+        if [ "$SOURCE" = images ]; then
+          docker compose up -d --no-build --wait --wait-timeout 600
+        else
+          docker compose up -d --build --wait --wait-timeout 900
+        fi
+        make contract
+
+    - name: Smoke checks
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: sh scripts/smoke.sh
+
+    - name: Export the contract
+      id: contract
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      env:
+        SOURCE: ${{ steps.images.outputs.source }}
+      # Writing to $GITHUB_ENV is the point of this step; the keys are allowlisted and every value is checked
+      # against a strict character class below, so the contract file cannot set anything else.
+      run: | # zizmor: ignore[github-env]
+        file="$(pwd)/.generated/sut.env"
+        # Values are test-only data of a throwaway stand; mask the credential-like ones anyway so they never
+        # appear in logs in the clear.
+        for key in SUT_ADMIN_PASSWORD SUT_DB_READONLY_URL SUT_INTERNAL_DB_READONLY_URL SUT_JWT_SECRET; do
+          value=$(grep "^$key=" "$file" | cut -d= -f2-)
+          [ -n "$value" ] && echo "::add-mask::$value"
+        done
+        # Only the documented contract keys reach $GITHUB_ENV, and only values made of characters a URL, an ID
+        # or a test credential needs, so the file can never set PATH, LD_PRELOAD or inject a second line.
+        allowed="SUT_ADMIN_EMAIL SUT_ADMIN_PASSWORD SUT_ADMIN_URL SUT_BACKEND_URL SUT_DB_READONLY_URL
+          SUT_DOCKER_NETWORK SUT_INTERNAL_BACKEND_URL SUT_INTERNAL_DB_READONLY_URL SUT_INTERNAL_REDIS_URL
+          SUT_JWT_SECRET SUT_MEDUSA_VERSION SUT_PUBLISHABLE_KEY SUT_REDIS_URL SUT_REGION_CURRENCY SUT_REGION_ID
+          SUT_REGION_USD_ID SUT_SALES_CHANNEL_ID SUT_STOCK_LOCATION_ID SUT_STOREFRONT_COUNTRY SUT_STOREFRONT_URL"
+        for key in $allowed; do
+          value=$(grep "^$key=" "$file" | head -1 | cut -d= -f2-)
+          if ! printf '%s' "$value" | grep -Eq '^[A-Za-z0-9_@:/.%+#=-]*$'; then
+            echo "::error title=shop-sut::contract value of $key has unexpected characters"; exit 1
+          fi
+          echo "$key=$value" >> "$GITHUB_ENV"
+        done
+        echo "SUT_ENV_FILE=$file" >> "$GITHUB_ENV"
+        echo "file=$file" >> "$GITHUB_OUTPUT"
+        {
+          echo "### shop-sut is up"
+          echo
+          echo "| | |"
+          echo "|---|---|"
+          echo "| Source | $SOURCE |"
+          echo "| Commit | \`$(git rev-parse --short HEAD)\` |"
+          echo "| Backend | $(grep '^SUT_BACKEND_URL=' "$file" | cut -d= -f2-) |"
+          echo "| Storefront | $(grep '^SUT_STOREFRONT_URL=' "$file" | cut -d= -f2-) |"
+          echo "| Medusa | $(grep '^SUT_MEDUSA_VERSION=' "$file" | cut -d= -f2-) |"
+        } >> "$GITHUB_STEP_SUMMARY"

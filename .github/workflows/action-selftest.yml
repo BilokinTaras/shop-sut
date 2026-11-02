@@ -1,0 +1,47 @@
+name: start-sut self-test
+
+# Proves the shared action works the way the test projects call it: once from the published `main` images,
+# once building from source (an image tag that does not exist must fall back, not fail).
+# Runs weekly and on demand. The run right after publishing lives in images.yml (job `selftest`), so this
+# workflow needs no `workflow_run` trigger, which would run with elevated context on events it cannot vet.
+on:
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    name: from ${{ matrix.mode }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [images, source]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Start the shop
+        id: sut
+        uses: ./.github/actions/start-sut
+        with:
+          ref: ${{ github.sha }}
+          image-tag: ${{ matrix.mode == 'images' && 'main' || 'does-not-exist' }}
+
+      - name: The action took the expected path and exported the contract
+        env:
+          EXPECTED: ${{ matrix.mode == 'images' && 'images' || 'build' }}
+          ACTUAL: ${{ steps.sut.outputs.source }}
+        run: |
+          test "$ACTUAL" = "$EXPECTED" || { echo "expected $EXPECTED, got $ACTUAL"; exit 1; }
+          test -n "$SUT_BACKEND_URL" && test -n "$SUT_PUBLISHABLE_KEY" && test -f "$SUT_ENV_FILE"
+          curl -sf "$SUT_BACKEND_URL/health" > /dev/null
+
+      - name: Logs on failure
+        if: failure()
+        uses: ./.github/actions/collect-sut-logs

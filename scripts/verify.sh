@@ -106,3 +106,11 @@ create table qa_probe(x int)       -> $ro_create
 EOF
 rm -f "$OUT_DIR/.smoke.log"
 echo "verify: wrote $OUT (smoke $smoke_pass/$((smoke_pass + smoke_fail)), idempotent=$idempotent)"
+
+# Fail when any promise is broken, so CI can use this script as a gate, not just as a report.
+status=0
+if [ "$smoke_fail" -ne 0 ] || [ "$smoke_pass" -eq 0 ]; then echo "verify: smoke checks failed" >&2; status=1; fi
+[ "$idempotent" = yes ] || { echo "verify: second bootstrap changed row counts" >&2; status=1; }
+case "$ro_update" in *ERROR*) ;; *) echo "verify: qa_readonly could UPDATE" >&2; status=1 ;; esac
+case "$ro_create" in *ERROR*) ;; *) echo "verify: qa_readonly could CREATE TABLE" >&2; status=1 ;; esac
+exit "$status"

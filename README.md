@@ -111,9 +111,36 @@ see [docs/test-data-contract.md](docs/test-data-contract.md).
 
 ## CI/CD
 
-Planned after publication: lint scripts, Dockerfiles and workflows (shellcheck, hadolint, actionlint),
-build and start the stand, run smoke, upload logs on failure; multi-arch images in GHCR and a reusable
-`start-sut` action for the test repositories.
+```mermaid
+flowchart LR
+  pr[pull request / push] --> lint[lint: shellcheck · hadolint · actionlint · compose config]
+  lint --> stand[build · reset · smoke · verify.sh]
+  main[push to main / tag v*] --> build[build amd64 + arm64<br/>native runners]
+  build --> merge[multi-arch manifest → GHCR]
+  merge --> selftest[start-sut from those images]
+```
+
+| Workflow | When | What it proves |
+|---|---|---|
+| [`ci.yml`](.github/workflows/ci.yml) | every PR and push to `main` | Scripts, Dockerfiles and workflows pass their linters; the stand builds from source, starts from an empty database and `scripts/verify.sh` passes — it **fails the job** if smoke fails, a second bootstrap changes row counts, or the read-only role can write |
+| [`images.yml`](.github/workflows/images.yml) | push to `main`, tags `v*` | Backend and storefront images for `linux/amd64` and `linux/arm64`, each built natively on its own runner (no QEMU), published to `ghcr.io/bilokintaras/shop-sut-{backend,storefront}` tagged with the commit SHA, `main` and the version; then the shared action starts the stand from exactly those images |
+| [`action-selftest.yml`](.github/workflows/action-selftest.yml) | weekly, manual | The shared action from published images **and** its fallback: an image tag that does not exist must build from source, not fail |
+
+**Shared action for the test repositories.** Every test project starts the shop the same way:
+
+```yaml
+- uses: BilokinTaras/shop-sut/.github/actions/start-sut@main
+  with:
+    image-tag: main          # or a version / commit SHA; falls back to building from source
+- run: npm test              # SUT_* variables from the contract are already in the environment
+- if: failure()
+  uses: BilokinTaras/shop-sut/.github/actions/collect-sut-logs@main
+```
+
+It exports only the documented contract keys, checks every value against a strict character class before
+writing it to `$GITHUB_ENV`, and masks the credential-like ones. All third-party actions are pinned to a
+commit SHA; Dependabot proposes updates weekly with a seven-day cooldown. The workflows pass `actionlint` and
+`zizmor` with no medium or high findings.
 
 ## How-to
 
@@ -151,7 +178,8 @@ machine; the numbers above come from those runs.
 
 ## Roadmap & known limitations
 
-- No CI yet; images are built locally (CI, GHCR images and the `start-sut` action come with publication).
+- CI, images and the shared action are written and pass `actionlint`, `zizmor`, `shellcheck` and `hadolint`
+  locally; their first runs on GitHub are still to come, so no badge is shown until they are green.
 - Verified on Windows 11 + Docker Desktop (x86_64) so far; macOS arm64 and Linux runs are pending.
 - The starter seed references product images on Medusa's public S3 bucket; pages with those products
   need internet access to show images. QA products use local images.

@@ -3,7 +3,9 @@
 name: qa-shop-sut
 
 x-backend: &backend
-  image: qa-shop-sut/backend:local
+  # Local builds use these names; CI can point them at prebuilt GHCR images instead (see
+  # .github/actions/start-sut), in which case nothing is built.
+  image: ${SHOP_BACKEND_IMAGE:-qa-shop-sut/backend:local}
   # Built once by the `medusa` service; the one-shot services reuse the image.
   pull_policy: never
   environment: &backend-env
@@ -61,7 +63,8 @@ services:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
-    pull_policy: build
+    # `build` locally; `missing` when SHOP_BACKEND_IMAGE names a published image.
+    pull_policy: ${SHOP_PULL_POLICY:-build}
     environment:
       <<: *backend-env
       # Performance experiment knob (shop-performance-k6): number of Node.js processes. Empty = one process.
@@ -102,7 +105,8 @@ services:
     restart: "no"
 
   storefront:
-    image: qa-shop-sut/storefront:local
+    image: ${SHOP_STOREFRONT_IMAGE:-qa-shop-sut/storefront:local}
+    pull_policy: ${SHOP_PULL_POLICY:-build}
     build:
       context: .
       dockerfile: docker/storefront.Dockerfile
