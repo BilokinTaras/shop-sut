@@ -14,8 +14,9 @@ QA data and a generated contract file that test projects read their settings fro
 - Bootstrap is idempotent: run twice in a row it creates nothing new — the verification script compares row
   counts before and after and writes the result to the same file.
 - Production run mode (`medusa start`, `next start`, Redis-backed modules) for stable timings.
-- Built to be shared by three sibling test projects in the same portfolio (Playwright UI + API, pytest API,
-  k6 performance). They are separate repositories and are linked from the profile once published.
+- Shared by three test projects, each in its own repository:
+  [Playwright UI + API](https://github.com/BilokinTaras/shop-e2e-playwright), [pytest API](https://github.com/BilokinTaras/shop-api-pytest) and
+  [k6 performance](https://github.com/BilokinTaras/shop-performance-k6).
 
 ## Live reports
 
@@ -127,7 +128,7 @@ build and start the stand, run smoke, upload logs on failure; multi-arch images 
 ## Results and findings
 
 Latest verification run, produced by `sh scripts/verify.sh` and committed in full:
-**[docs/verification/2026-11-01.md](docs/verification/2026-11-01.md)** (commit `6330c3b`, Docker 29.7.2).
+**[docs/verification/2026-11-01.md](docs/verification/2026-11-01.md)** (commit `f45493e`, Docker 29.7.2).
 
 | Check | Result |
 |---|---|
@@ -163,3 +164,7 @@ MIT © 2026 Taras Bilokin — see [LICENSE](LICENSE). `app/` is
 [medusajs/dtc-starter](https://github.com/medusajs/dtc-starter) at commit `d4e4dae`
 (`@medusajs/*` 2.22.2), MIT © 2022 Medusa — see [LICENSE-medusa-dtc-starter](LICENSE-medusa-dtc-starter)
 and [NOTICE](NOTICE). Runtime images: `node:22.23.4-bookworm-slim`, `postgres:17.11-alpine`, `redis:7.4.12-alpine`.
+
+---
+
+Part of a QA portfolio: **shop-sut** (the shop under test) · [shop-e2e-playwright](https://github.com/BilokinTaras/shop-e2e-playwright) (UI and API end-to-end) · [shop-api-pytest](https://github.com/BilokinTaras/shop-api-pytest) (API depth) · [shop-performance-k6](https://github.com/BilokinTaras/shop-performance-k6) (performance) · [devsecops-quality-gates](https://github.com/BilokinTaras/devsecops-quality-gates) (security pipeline)
