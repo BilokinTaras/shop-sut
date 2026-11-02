@@ -4,6 +4,8 @@ name: start-sut self-test
 # once building from source (an image tag that does not exist must fall back, not fail).
 # Runs weekly and on demand. The run right after publishing lives in images.yml (job `selftest`), so this
 # workflow needs no `workflow_run` trigger, which would run with elevated context on events it cannot vet.
+# A workflow with only schedule or manual triggers is indexed by GitHub from a push that changes this file;
+# the repository's first push did not register it.
 on:
   schedule:
     - cron: "17 4 * * 1"

@@ -4,7 +4,7 @@ A realistic, deterministic system under test that starts with one command: Medus
 Store and Admin REST APIs), the official Next.js storefront, PostgreSQL and Redis in Docker, plus seeded
 QA data and a generated contract file that test projects read their settings from.
 
-![Medusa](https://img.shields.io/badge/Medusa-2.22.2-blue) ![Docker Compose](https://img.shields.io/badge/Docker%20Compose-v2-informational) ![License: MIT](https://img.shields.io/badge/license-MIT-green)
+[![CI](https://github.com/BilokinTaras/shop-sut/actions/workflows/ci.yml/badge.svg)](https://github.com/BilokinTaras/shop-sut/actions/workflows/ci.yml) [![Images](https://github.com/BilokinTaras/shop-sut/actions/workflows/images.yml/badge.svg)](https://github.com/BilokinTaras/shop-sut/actions/workflows/images.yml) ![Medusa](https://img.shields.io/badge/Medusa-2.22.2-blue) ![Docker Compose](https://img.shields.io/badge/Docker%20Compose-v2-informational) ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
 ## In 30 seconds
 
@@ -178,8 +178,9 @@ machine; the numbers above come from those runs.
 
 ## Roadmap & known limitations
 
-- CI, images and the shared action are written and pass `actionlint`, `zizmor`, `shellcheck` and `hadolint`
-  locally; their first runs on GitHub are still to come, so no badge is shown until they are green.
+- Images are published for `linux/amd64` and `linux/arm64` and pull anonymously (checked against the registry
+  on 2026-11-02). The arm64 images are built natively on GitHub's arm64 runners, but the stand has only been
+  started from the amd64 images so far — neither in CI on arm64 nor on an Apple Silicon Mac.
 - Verified on Windows 11 + Docker Desktop (x86_64) so far; macOS arm64 and Linux runs are pending.
 - The starter seed references product images on Medusa's public S3 bucket; pages with those products
   need internet access to show images. QA products use local images.
