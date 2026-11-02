@@ -39,7 +39,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:7.4.12-alpine
+    image: redis:8.10.2-alpine
     ports:
       - "127.0.0.1:${SHOP_REDIS_PORT:-56379}:6379"
     healthcheck:
