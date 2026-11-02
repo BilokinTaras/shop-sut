@@ -25,3 +25,11 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    # Major versions of the stand's databases are deliberate migrations, not routine bumps: every number in the
+    # test projects' reports was measured on PostgreSQL 17 and Redis 7.4, and PostgreSQL 18 images also moved
+    # their data directory, so a drop-in bump leaves the container unhealthy. Minor and patch updates still come.
+    ignore:
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
+      - dependency-name: redis
+        update-types: ["version-update:semver-major"]
