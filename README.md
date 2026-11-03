@@ -20,7 +20,17 @@ QA data and a generated contract file that test projects read their settings fro
 
 ## Live reports
 
-Not published yet — this repository has no CI until it is pushed to GitHub (see Roadmap).
+The stand has no report site of its own; it is checked in three places:
+
+- [CI](https://github.com/BilokinTaras/shop-sut/actions/workflows/ci.yml) builds the stand from source, starts it,
+  runs the smoke checks and `scripts/verify.sh` on every pull request and push to `main`;
+  [start-sut self-test](https://github.com/BilokinTaras/shop-sut/actions/workflows/action-selftest.yml) starts it
+  from the published images and from source.
+- Every night the four test repositories start it through `start-sut` and publish their reports:
+  [Playwright](https://bilokintaras.github.io/shop-e2e-playwright/) ·
+  [API (Allure)](https://bilokintaras.github.io/shop-api-pytest/) ·
+  [k6](https://bilokintaras.github.io/shop-performance-k6/) — all green on 2026-11-03.
+- Local runs of `scripts/verify.sh` are committed in [docs/verification/](docs/verification/).
 
 ## Architecture
 
@@ -181,7 +191,7 @@ machine; the numbers above come from those runs.
 - Images are published for `linux/amd64` and `linux/arm64` and pull anonymously (checked against the registry
   on 2026-11-02). The arm64 images are built natively on GitHub's arm64 runners, but the stand has only been
   started from the amd64 images so far — neither in CI on arm64 nor on an Apple Silicon Mac.
-- Verified on Windows 11 + Docker Desktop (x86_64) so far; macOS arm64 and Linux runs are pending.
+- Verified on Windows 11 + Docker Desktop (x86_64) and on Linux in CI (GitHub-hosted Ubuntu runners); macOS arm64 is pending.
 - The starter seed references product images on Medusa's public S3 bucket; pages with those products
   need internet access to show images. QA products use local images.
 - The session cookie is configured without `Secure` because the stand is plain HTTP on localhost —
