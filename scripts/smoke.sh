@@ -61,7 +61,7 @@ case "$page" in
 esac
 
 # 6. The product image is local to this stand: no test should depend on an external CDN.
-status=$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' "$SUT_STOREFRONT_URL/qa/qa-tee.png" || true)
+status=$(status "$SUT_STOREFRONT_URL/qa/qa-tee.png" -I)
 case "$status" in
   200) pass "storefront serves the local QA product image" ;;
   *) fail "storefront serves the local QA product image" "GET /qa/qa-tee.png -> $status" ;;
