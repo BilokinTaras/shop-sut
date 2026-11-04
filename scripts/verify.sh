@@ -54,9 +54,9 @@ after=$(psql_count "$counts_query")
 
 # The read-only role must fail on write and on DDL; `|| true` keeps the script going so both are reported.
 ro_url=$(grep '^SUT_DB_READONLY_URL=' "$GENERATED/sut.env" | cut -d= -f2-)
-ro_update=$(docker compose exec -T postgres psql "$(echo "$ro_url" | sed 's|localhost:[0-9]*|localhost:5432|')" \
+ro_update=$(docker compose exec -T postgres psql "$(echo "$ro_url" | sed 's|@[^/]*/|@localhost:5432/|')" \
   -tAc 'update product set title = title' 2>&1 | head -1 | tr -d '\r' || true)
-ro_create=$(docker compose exec -T postgres psql "$(echo "$ro_url" | sed 's|localhost:[0-9]*|localhost:5432|')" \
+ro_create=$(docker compose exec -T postgres psql "$(echo "$ro_url" | sed 's|@[^/]*/|@localhost:5432/|')" \
   -tAc 'create table qa_probe(x int)' 2>&1 | head -1 | tr -d '\r' || true)
 
 versions=$(docker compose exec -T medusa node -p "require('@medusajs/medusa/package.json').version" | tr -d '\r')

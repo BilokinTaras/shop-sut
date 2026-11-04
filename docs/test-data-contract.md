@@ -27,8 +27,8 @@ Test projects read it from `../shop-sut/.generated/sut.env` and must not hard-co
 | `SUT_REGION_USD_ID` | "QA North America" region (us, ca) in USD | `reg_…` |
 | `SUT_SALES_CHANNEL_ID` | Default sales channel | `sc_…` |
 | `SUT_STOCK_LOCATION_ID` | "European Warehouse" stock location | `sloc_…` |
-| `SUT_DB_READONLY_URL` | Postgres as role `qa_readonly` (SELECT only, read-only transactions) | `postgres://qa_readonly:…@localhost:55432/medusa` |
-| `SUT_REDIS_URL` | Redis from the host | `redis://localhost:56379` |
+| `SUT_DB_READONLY_URL` | Postgres as role `qa_readonly` (SELECT only, read-only transactions) | `postgres://qa_readonly:…@127.0.0.1:55432/medusa` |
+| `SUT_REDIS_URL` | Redis from the host | `redis://127.0.0.1:56379` |
 | `SUT_DOCKER_NETWORK` | Docker network other stacks join | `qa-shop-net` |
 | `SUT_INTERNAL_BACKEND_URL` | Backend from a container on that network | `http://medusa:9000` |
 | `SUT_INTERNAL_DB_READONLY_URL` | Postgres read-only from that network | `postgres://qa_readonly:…@postgres:5432/medusa` |

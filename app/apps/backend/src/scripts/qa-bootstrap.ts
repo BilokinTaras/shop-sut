@@ -400,8 +400,10 @@ export default async function qaBootstrap({ container }: ExecArgs) {
     SUT_REGION_USD_ID: qaRegionId!,
     SUT_SALES_CHANNEL_ID: salesChannel.id,
     SUT_STOCK_LOCATION_ID: stockLocation.id,
-    SUT_DB_READONLY_URL: `postgres://qa_readonly:${roPassword}@localhost:${hostDbPort}/${dbName}`,
-    SUT_REDIS_URL: `redis://localhost:${hostRedisPort}`,
+    // Postgres and Redis are published on 127.0.0.1 only. "localhost" resolves to ::1 first, and libpq on
+    // Windows does not notice the refused IPv6 connection: without connect_timeout it waits forever.
+    SUT_DB_READONLY_URL: `postgres://qa_readonly:${roPassword}@127.0.0.1:${hostDbPort}/${dbName}`,
+    SUT_REDIS_URL: `redis://127.0.0.1:${hostRedisPort}`,
     SUT_DOCKER_NETWORK: process.env.QA_DOCKER_NETWORK || 'qa-shop-net',
     SUT_INTERNAL_BACKEND_URL: internalBackend,
     SUT_INTERNAL_DB_READONLY_URL: `postgres://qa_readonly:${roPassword}@postgres:5432/${dbName}`,
